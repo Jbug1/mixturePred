@@ -52,11 +52,6 @@ def bake_off_func_output(train, test, models, error_funcs):
         
     return res
 
-def rmse(pred, true):
-
-    return np.sqrt(sum((true-pred)**2)/len(pred))
-
-
 
 def piecewise(input, funcs_dict, critical_vars, default_coeffs=None):
     """
@@ -95,3 +90,15 @@ def piecewise(input, funcs_dict, critical_vars, default_coeffs=None):
             y[x]= input[x]@ default_coeffs
 
     return y, utilization_dict
+
+def weighted_coefs_from_util(funcs_dict, util_dict, defaults):
+
+    avg = np.zeros(len(defaults))
+    funcs_dict['default']=np.array(defaults)
+    tot = 0
+    for i in util_dict:
+
+        avg += util_dict[i]*np.array(funcs_dict[i])
+        tot+= util_dict[i]
+    
+    return avg/tot

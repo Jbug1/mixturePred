@@ -4,19 +4,6 @@
 import numpy as np
 
 
-def weighted_coefs_from_util(funcs_dict, util_dict, defaults):
-
-    avg = np.zeros(len(defaults))
-    funcs_dict['default']=np.array(defaults)
-    tot = 0
-    for i in util_dict:
-
-        avg += util_dict[i]*np.array(funcs_dict[i])
-        tot+= util_dict[i]
-    
-    return avg/tot
-
-
 def traverse_to_node(x, tree, feature, i=0, prop=1):
         """ 
         tree: decision tree object
@@ -28,7 +15,7 @@ def traverse_to_node(x, tree, feature, i=0, prop=1):
         #return prediction with proper proportion if this is a node
         if tree.children_left[i]==-1:
 
-            return (tree.value[i][0][0], prop)
+            return (tree.value[i][0][0], feature_means[i][feature], prop)
             
         #normal traverse if this is not the feature of interest
         if tree.feature[i]!= feature:
@@ -49,25 +36,34 @@ def traverse_to_node(x, tree, feature, i=0, prop=1):
             prop_left = prop * samps[tree.children_left[i]]/samps[i]
             left =traverse_to_node(x, tree, feature, i = tree.children_left[i], prop = prop_left)
             
-            
             #traverse to right with proper proportions
             prop_right = prop * samps[tree.children_right[i]]/samps[i]
             right = traverse_to_node(x, tree, feature, i = tree.children_right[i], prop = prop_right)
             
-            return (left[0]*(left[1]/(left[1]+right[1])) + right[0]*(right[1]/(left[1]+right[1])),left[1]+right[1])
+            return (left[0]*prop_left + right[0]*prop_right, left[1]*prop_left + right[1]*prop_right, prop_left+prop_right)
         
 
 
-def coef_impact_estimate(x, tree, feature, feature_mean, pred_val):
+def coef_impact_estimate(x, tree, feature, tree_means, pred_val, i=0):
+    """
+    Estimator of coeff value conditioned on values of other features
+
+    formula (y_pred - y|coeffs_~feature_x)/(feature_x- E[feature_x|features_~feature_x])
+    x: np array of one observations
+    tree: tree object
+    feature: int index of feature we are estimating
+    tree_means: means of all features and response by node
+    i: int index of current node
+    """
 
     #don't want to include impact on coeff if 0
-    if x[feature] -feature_mean ==0:
+    if x[feature] - tree_means[i][feature]==0:
         return None
     
     #get masked_prediction
-    masked_pred_val = traverse_to_node(x, tree, feature)[0]
+    masked_pred_val, masked_feature_mean = traverse_to_node(x, tree, feature)[0]
 
-    return (pred_val - masked_pred_val) / (x[feature] -feature_mean)
+    return (pred_val - masked_pred_val) / (x[feature] -masked_feature_mean)
 
 def estimate_all_coefs(x, tree, feature_means):
 
