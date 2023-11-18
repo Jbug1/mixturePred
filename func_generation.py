@@ -3,6 +3,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal as mvn
 import pandas as pd
+from bisect import bisect_left as bi
 
 
 def generate_function_coefficients(func_specs,n=1):
