@@ -81,7 +81,7 @@ def estimate_all_coefs(x, tree, feature_means):
         print (x)
     for i in range(len(x)):
 
-        ests[i] = coef_impact_estimate(x, tree, feature=i, feature_mean = feature_means[i], pred_val = pred_val)
+        ests[i] = coef_impact_estimate(x, tree, feature=i, feature_means=feature_means, pred_val = pred_val)
 
     return ests
 
@@ -115,7 +115,7 @@ def estimate_all_coefs_for_dataset(x, mod, feature_means, ensemble=True):
 
     return res
 
-def get_coef_estimates(models, train, feature_means):
+def get_coef_estimates(train, models, feature_means):
 
     res = dict()
     for i in range(len(models)):
@@ -123,18 +123,18 @@ def get_coef_estimates(models, train, feature_means):
         #this is an ensemble model
         if hasattr(models[i], 'estimators_'):
 
-            est = estimate_all_coefs_for_dataset(train[:,:-1], models[i], feature_means[i])
+            est = estimate_all_coefs_for_dataset(train, models[i], feature_means[i])
             res[models[i]]=np.nanmean(est,axis=0)
 
         #this is a decision tree
         elif hasattr(models[i], 'tree_'):
 
-            est = estimate_all_coefs_for_dataset(train[:,:-1], models[i], feature_means[i], ensemble=False)
+            est = estimate_all_coefs_for_dataset(train, models[i], feature_means[i], ensemble=False)
             res[models[i]]=np.nanmean(est, axis=0)
 
         #this is a regression model
         else:
-            res[i]=i.coef_
+            res[i]=models[i].coef_
 
     return res
 
@@ -144,17 +144,19 @@ def get_feature_means_models(X, models):
 
     for model in models:
 
-        feature_means.append(get_feature_means_forest(X, model))
+        if hasattr(model,'estimators_') or hasattr(model, 'tree_'):
+            feature_means.append(get_feature_means_forest(X, model))
+        else:
+            feature_means.append(0)
 
     return  feature_means
 
 def get_feature_means_forest(X,model):
 
     #catch all architectures
-
     if hasattr(model, 'tree_'):
 
-        return [get_feature_means_tree(X, model.tree_)]
+        return get_feature_means_tree(X, model.tree_)
     
     feature_means=np.zeros(len(model.estimators_), dtype=object)
     for i in range(len(model.estimators_)):

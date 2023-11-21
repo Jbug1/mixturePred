@@ -11,6 +11,9 @@ def rmse(pred, true):
 
 
 def rank_by_coef_error(models, weighted_coefs):
+    """ 
+    higher is better
+    """
 
     res=dict()
     for key, val in models.items():
